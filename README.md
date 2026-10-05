@@ -42,3 +42,26 @@ cd frontend
 npm install
 npm run dev
 ```
+
+## Agent service (`ai/`)
+
+A Python sidecar for the Go API: `note/` keeps owning note storage, the sidecar
+owns everything semantic.
+
+```
+START -> normalise -+-> summarise -------+
+                    |                    +-> index -> END
+                    +-> extract_actions -+
+```
+
+- **Parallel readings** - the summary and the action items come off the same normalised text, in parallel
+- **Action items** - returned as `{owner, action, due}` objects; the parser recovers the JSON even when the model wraps it in prose
+- **Searchable** - the note is embedded into Qdrant so `/query` can answer across notes with citations
+- **Models** - vLLM (`Qwen/Qwen3-32B` chat, `BAAI/bge-m3` embeddings)
+
+```
+docker compose -f ai/docker-compose.ai.yml up
+```
+
+`POST /process` summarises and indexes a note; `POST /query` searches across them.
+See [`ai/README.md`](ai/README.md).

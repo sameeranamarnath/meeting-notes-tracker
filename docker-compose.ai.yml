@@ -1,0 +1,70 @@
+# Notes agent stack: vLLM (chat + embeddings) + Qdrant + the Python sidecar.
+#
+#   docker compose -f docker-compose.ai.yml up
+#
+# The Go services (encore run) stay outside this file and call the sidecar on
+# AGENT_BASE_URL.
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.12.4
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  vllm:
+    image: vllm/vllm-openai:latest
+    command:
+      - --model
+      - Qwen/Qwen3-32B
+      - --served-model-name
+      - Qwen/Qwen3-32B
+      - --max-model-len
+      - "8192"
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN:-}
+    ports:
+      - "8000:8000"
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  vllm-embed:
+    image: vllm/vllm-openai:latest
+    command:
+      - --model
+      - BAAI/bge-m3
+      - --task
+      - embed
+      - --port
+      - "8000"
+    ports:
+      - "8001:8000"
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+
+  notes-agent:
+    build: ./ai
+    environment:
+      LLM_BASE_URL: http://vllm:8000/v1
+      LLM_MODEL: Qwen/Qwen3-32B
+      EMBED_BASE_URL: http://vllm-embed:8000/v1
+      EMBED_MODEL: BAAI/bge-m3
+      QDRANT_URL: http://qdrant:6333
+      GO_API_BASE: http://host.docker.internal:4000
+    ports:
+      - "8080:8080"
+    depends_on:
+      - qdrant
+      - vllm
+      - vllm-embed
+
+volumes:
+  qdrant_data:
+  hf_cache:
