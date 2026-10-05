@@ -1,15 +1,44 @@
+# meeting-notes-tracker
 
-# Meeting Notes
+Take notes during a meeting and attach a relevant image to them. The front end is
+React/Vite; the API is Go deployed with Encore; note images come from the Pexels API.
 
-Stack:
+## Endpoints
 
-React-Vite-Typescript-Tailwind
-Go
-Cloud based SQL database
-Encore for infra management and tracking
+| Method | Path | Job |
+| --- | --- | --- |
+| `GET` | `/note/:id` | Fetch a note by id |
+| `POST` | `/note` | Create or update a note |
+| `GET` | `/images/:query` | Search Pexels for a note image |
 
-The backend uses an SQL database to store meeting notes and has three API endpoints:
+## Stack
 
-- `GET  /note/:id` - Retrieve a note by ID.
-- `POST /note` - Create a new note (or update an existing one).
-- `GET  /images/:query` - Search for images by using pexels api
+- Front end: React + Vite + TypeScript + Tailwind (`frontend/`)
+- API: Go; `note/` and `pexels/` are Encore services
+- Storage: cloud SQL database provisioned through Encore
+- Infrastructure: Encore handles provisioning and service tracking
+
+## Layout
+
+```
+frontend/    React/Vite app
+note/        Encore service - note CRUD
+pexels/      Encore service - image search
+encore.app
+```
+
+## Run it
+
+Backend (Encore CLI required):
+
+```
+encore run
+```
+
+Front end:
+
+```
+cd frontend
+npm install
+npm run dev
+```
