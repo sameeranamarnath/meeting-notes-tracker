@@ -1,7 +1,8 @@
 """HTTP surface for the notes agent. The Go `note` service calls these."""
 
 import json
-from typing import Any, AsyncIterator
+from collections.abc import AsyncIterator
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
@@ -9,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from core import get_settings, search_notes
 from graph import PROCESS_APP, QUERY_APP, process, query
+from guardrails import sanitise
 
 api = FastAPI(title="meeting notes agent", version="1.0.0")
 
@@ -36,7 +38,7 @@ def health() -> dict[str, Any]:
 
 @api.post("/process")
 def process_endpoint(req: ProcessRequest) -> dict[str, Any]:
-    result = process(req.note_id, req.text, req.title)
+    result = process(req.note_id, sanitise(req.text), req.title)
     return {
         "note_id": req.note_id,
         "summary": result.get("summary", ""),
@@ -58,7 +60,8 @@ async def process_stream(req: ProcessRequest) -> StreamingResponse:
         state: dict[str, Any] = {"note_id": req.note_id, "raw": req.text, "title": req.title}
         for step in PROCESS_APP.stream(state):
             for node, update in step.items():
-                yield f"event: node\ndata: {json.dumps({'node': node, 'update': _safe(update)})}\n\n"
+                payload = json.dumps({"node": node, "update": _safe(update)})
+                yield f"event: node\ndata: {payload}\n\n"
                 state.update(update)
         yield f"event: done\ndata: {json.dumps(_safe(state))}\n\n"
 
@@ -71,7 +74,8 @@ async def query_stream(req: QueryRequest) -> StreamingResponse:
         state: dict[str, Any] = {"question": req.question}
         for step in QUERY_APP.stream(state):
             for node, update in step.items():
-                yield f"event: node\ndata: {json.dumps({'node': node, 'update': _safe(update)})}\n\n"
+                payload = json.dumps({"node": node, "update": _safe(update)})
+                yield f"event: node\ndata: {payload}\n\n"
                 state.update(update)
         yield f"event: done\ndata: {json.dumps(_safe(state))}\n\n"
 

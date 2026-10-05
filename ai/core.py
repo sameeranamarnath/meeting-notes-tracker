@@ -74,9 +74,7 @@ def ensure_collection() -> str:
     if not c.collection_exists(s.qdrant_collection):
         c.create_collection(
             collection_name=s.qdrant_collection,
-            vectors_config=models.VectorParams(
-                size=s.embed_dim, distance=models.Distance.COSINE
-            ),
+            vectors_config=models.VectorParams(size=s.embed_dim, distance=models.Distance.COSINE),
         )
     return s.qdrant_collection
 
@@ -106,13 +104,15 @@ def index_note(note_id: str, title: str | None, text: str) -> int:
             vector=v,
             payload={"note_id": note_id, "title": title, "chunk_index": i, "text": t},
         )
-        for i, (t, v) in enumerate(zip(chunks, vectors))
+        for i, (t, v) in enumerate(zip(chunks, vectors, strict=False))
     ]
     c.upsert(collection_name=collection, points=points)
     return len(points)
 
 
-def search_notes(query: str, note_id: str | None = None, top_k: int | None = None) -> list[dict[str, Any]]:
+def search_notes(
+    query: str, note_id: str | None = None, top_k: int | None = None
+) -> list[dict[str, Any]]:
     s = get_settings()
     collection = ensure_collection()
     query_filter = None

@@ -74,7 +74,7 @@ def extract_actions(state: NoteState) -> dict[str, Any]:
     prompt = (
         "Extract action items. Reply with a JSON array only, no prose:\n"
         '[{"owner": "...", "action": "...", "due": "..."}]\n'
-        'Use null when an owner or due date is not stated.\n\n'
+        "Use null when an owner or due date is not stated.\n\n"
         f"Notes:\n{state['normalised']}"
     )
     data = _json_block(str(chat_model(max_tokens=800).invoke(prompt).content))
@@ -124,8 +124,12 @@ def answer(state: QueryState) -> dict[str, Any]:
     )
     text = str(chat_model().invoke(prompt).content).strip()
     citations = [
-        {"index": i + 1, "note_id": h.get("note_id"), "title": h.get("title"),
-         "score": round(float(h.get("score", 0.0)), 4)}
+        {
+            "index": i + 1,
+            "note_id": h.get("note_id"),
+            "title": h.get("title"),
+            "score": round(float(h.get("score", 0.0)), 4),
+        }
         for i, h in enumerate(state.get("hits", []))
     ]
     return {"answer": text, "citations": citations}
